@@ -1,0 +1,81 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# PyInstaller
+*.spec.bak
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Project specific
+bin/
+downloads/
+*.log
+config.toml
+uv.lock
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.nox/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Sensitive
+*.pem
+*.key
+.env
+.env.local
+.env.*.local
+
+# Handoff and audit files (local only)
+CLAUDE_CODE_HANDOFF.md
+VIDEO_DOWNLOADER_HANDOFF*.md
+*_FORMAL_AUDIT*.md
+*_ROBUSTNESS_HANDOFF.md
+summary_report*.md
+report.md
+
+# Session files (local only)
+*claude code session*.md
+*gemini suggestions*.md
+
+# Sensitive local documents
+SUPPORTING_DOCUMENTS_SENSITIVE_LOCAL_ONLY/
+
+# Temporary files
+temp/
+*.tmp
+*.temp
+*~
+*.bak
+
+# Editor backups
+\#*\#

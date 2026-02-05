@@ -1,0 +1,41 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: uv pip install --system -e ".[dev]"
+
+    - name: Fetch Binaries
+      run: python scripts/fetch_binaries.py
+
+    - name: Build EXE
+      run: pyinstaller app.spec --clean --noconfirm
+
+    - name: Archive Release
+      run: Compress-Archive -Path "dist/VideoDownloader/*" -DestinationPath "VideoDownloader-${{ github.ref_name }}-win64.zip"
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: VideoDownloader-${{ github.ref_name }}-win64.zip
+        generate_release_notes: true

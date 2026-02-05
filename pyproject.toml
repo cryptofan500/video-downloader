@@ -1,0 +1,88 @@
+[project]
+name = "video-downloader"
+version = "1.1.0"
+description = "Modern video downloader with GUI, CLI, transcription, and multi-site support"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Pawel Zawadzki", email = "zawadzkipawel37@outlook.com" }
+]
+keywords = ["youtube", "video", "downloader", "yt-dlp", "transcription", "gui"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+]
+
+dependencies = [
+    "yt-dlp>=2025.01.0,<2026.0.0",
+    "customtkinter>=5.2.2,<6.0.0",
+    "typer[all]>=0.12.0,<1.0.0",
+    "rich>=13.7.0,<14.0.0",
+    "pillow>=10.4.0,<11.0.0",
+    "packaging>=24.1",
+    "tomli>=2.0.0;python_version<'3.11'",
+    "mutagen>=1.47.0",
+    "pystray>=0.19.0",
+]
+
+[project.optional-dependencies]
+transcription = [
+    "faster-whisper>=1.0.0",
+]
+dev = [
+    "pyinstaller>=6.0.0",
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.5.0",
+    "mypy>=1.11.0",
+    "types-pillow",
+]
+all = [
+    "video-downloader[transcription,dev]",
+]
+
+[project.scripts]
+video-downloader = "video_downloader.cli:cli_main"
+video-downloader-gui = "video_downloader.gui:main"
+
+[project.gui-scripts]
+VideoDownloader = "video_downloader.gui:main"
+
+[project.urls]
+Homepage = "https://github.com/cryptofan500/video-downloader"
+Repository = "https://github.com/cryptofan500/video-downloader"
+Issues = "https://github.com/cryptofan500/video-downloader/issues"
+
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/video_downloader"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "PTH"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=src/video_downloader --cov-report=term-missing"

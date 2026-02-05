@@ -1,0 +1,25 @@
+# Video Downloader Configuration
+# Copy this file to config.toml and customize as needed
+
+[app]
+title = "Video Downloader"
+version = "1.1.0"
+
+[download]
+# Output directory for downloaded videos
+# Use "downloads" for user's Downloads folder (recommended)
+# Or specify an absolute path like "C:/Videos" or "~/Videos"
+output_dir = "downloads"
+
+# Maximum concurrent downloads
+max_concurrent = 3
+
+# Download timeout in seconds
+timeout = 300
+
+# Number of retry attempts on failure
+retry_attempts = 3
+
+# Default video quality
+# Options: best, 2160p, 1080p, 720p, 480p, audio
+quality = "best"
