@@ -67,9 +67,6 @@ python -m video_downloader
 
 # Method 2: Batch file
 .\run.bat
-
-# Method 3: Windowless (no console)
-cscript run_windowless.vbs
 ```
 
 ## CLI Usage
@@ -112,6 +109,10 @@ pyinstaller app.spec --clean --noconfirm
 ```
 
 ## Troubleshooting
+
+**"Side-by-Side configuration is incorrect" error**: Install the
+[Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+and try again. This is required on some Windows installations.
 
 **Windows Defender Warning**: Since this EXE is not signed with a paid certificate, Windows may flag it as "Unknown Publisher". This is normal for open-source tools. Click "More info" then "Run anyway", or build from source.
 

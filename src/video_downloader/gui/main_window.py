@@ -107,7 +107,7 @@ class MainWindow(ctk.CTk):
         self.quality_var = ctk.StringVar(value="best")
         self.quality_dropdown = ctk.CTkOptionMenu(
             quality_frame,
-            values=["best", "2160p", "1080p", "720p", "480p", "mp3", "wav", "flac"],
+            values=["best", "native", "2160p", "1080p", "720p", "480p", "mp3", "wav", "flac"],
             variable=self.quality_var,
         )
         self.quality_dropdown.grid(row=0, column=1, padx=10, pady=10)
@@ -292,6 +292,12 @@ class MainWindow(ctk.CTk):
 
 def main() -> None:
     """Main entry point for GUI application."""
+    # Configure logging so logger calls produce output
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+
     # Set appearance
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
@@ -317,7 +323,7 @@ def main() -> None:
 
         config = AppConfig(
             title="Video Downloader",
-            version="1.0.0",
+            version="1.1.0",
             download=DownloadConfig(
                 output_dir=Path("downloads"),
                 max_concurrent=3,

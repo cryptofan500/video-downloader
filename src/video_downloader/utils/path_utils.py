@@ -118,6 +118,31 @@ def is_frozen() -> bool:
     return getattr(sys, "frozen", False)
 
 
+def get_sanitized_env() -> dict[str, str]:
+    """Get a sanitized copy of os.environ for spawning external processes.
+
+    Removes PyInstaller's _MEIPASS from PATH to prevent DLL conflicts
+    when launching FFmpeg, Deno, or other external binaries from a
+    frozen application.
+
+    Returns:
+        Copy of environment with clean PATH.
+    """
+    env = os.environ.copy()
+
+    if sys.platform == "win32" and hasattr(sys, "_MEIPASS"):
+        current_path = env.get("PATH", "")
+        mei_path = sys._MEIPASS  # type: ignore[attr-defined]
+        clean_paths = [p for p in current_path.split(os.pathsep) if p != mei_path]
+        env["PATH"] = os.pathsep.join(clean_paths)
+
+    # Restore original LD_LIBRARY_PATH on Linux (PyInstaller convention)
+    if "LD_LIBRARY_PATH_ORIG" in env:
+        env["LD_LIBRARY_PATH"] = env["LD_LIBRARY_PATH_ORIG"]
+
+    return env
+
+
 def safe_path_str(path: Path) -> str:
     """
     Convert path to string safe for subprocess calls.

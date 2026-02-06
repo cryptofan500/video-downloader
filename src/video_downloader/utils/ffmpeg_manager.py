@@ -86,21 +86,34 @@ class FFmpegManager:
             return False, "FFmpeg not found", (0, 0, 0)
 
         try:
+            from video_downloader.utils.path_utils import get_sanitized_env
+
             result = subprocess.run(
                 [str(self.ffmpeg_path), "-version"],
                 capture_output=True,
                 text=True,
                 timeout=5,
                 shell=False,  # CRITICAL: No shell injection
+                env=get_sanitized_env(),
             )
 
             if result.returncode == 0:
-                # Parse version (e.g., "ffmpeg version 4.4.2")
-                match = re.search(r"ffmpeg version (\d+)\.(\d+)\.(\d+)", result.stdout)
+                version_str = result.stdout.split("\n")[0]
+
+                # Parse version: "ffmpeg version 4.4.2" or "ffmpeg version 8.0"
+                match = re.search(r"ffmpeg version (\d+)\.(\d+)(?:\.(\d+))?", result.stdout)
                 if match:
-                    version = tuple(map(int, match.groups()))
-                    version_str = result.stdout.split("\n")[0]
+                    major, minor = int(match.group(1)), int(match.group(2))
+                    patch = int(match.group(3)) if match.group(3) else 0
+                    version = (major, minor, patch)
                     logger.info(f"FFmpeg version: {version_str}")
+                    return True, version_str, version
+
+                # Handle nightly builds: "ffmpeg version N-xxxxx-gHASH"
+                match = re.search(r"ffmpeg version [Nn]-?(\d+)", result.stdout)
+                if match:
+                    version = (99, int(match.group(1)), 0)
+                    logger.info(f"FFmpeg nightly: {version_str}")
                     return True, version_str, version
 
             return False, "Version check failed", (0, 0, 0)
@@ -128,6 +141,8 @@ class FFmpegManager:
         cmd = [str(self.ffmpeg_path)] + args
 
         try:
+            from video_downloader.utils.path_utils import get_sanitized_env
+
             result = subprocess.run(
                 cmd,
                 shell=False,  # CRITICAL: Prevents command injection
@@ -135,6 +150,7 @@ class FFmpegManager:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=get_sanitized_env(),
             )
 
             success = result.returncode == 0

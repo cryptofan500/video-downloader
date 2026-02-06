@@ -190,9 +190,9 @@ class DiagnosticsPane(ctk.CTkFrame):
         default_filename = f"video_downloader_logs_{timestamp}.txt"
 
         # Get user's Downloads folder as default location
-        downloads_folder = Path.home() / "Downloads"
-        if not downloads_folder.exists():
-            downloads_folder = Path.home()
+        from video_downloader.utils.user_dirs import get_downloads_folder
+
+        downloads_folder = get_downloads_folder()
 
         # Open save dialog
         filepath = filedialog.asksaveasfilename(

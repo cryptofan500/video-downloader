@@ -40,18 +40,16 @@ class VideoDownloader:
     MIX_PREFIXES = ("RD", "RDAMVM", "RDCMUC", "RDEM", "RDMM", "RDQM", "RDVM")
 
     # Complete list of supported browsers in PRIORITY ORDER
-    # Firefox FIRST (no database locking issues)
-    # Then less common Chromium browsers, then mainstream ones last
     SUPPORTED_BROWSERS: tuple[str, ...] = (
-        "firefox",      # No locking - BEST CHOICE
-        "vivaldi",      # Chromium-based, less common
-        "whale",        # Korean browser, Chromium-based
-        "opera",        # Chromium-based
-        "brave",        # Privacy-focused, Chromium-based
-        "edge",         # Windows default, Chromium-based
-        "chrome",       # Most common but locks database
-        "chromium",     # Raw Chromium
-        "safari",       # macOS only
+        "chrome",
+        "edge",
+        "brave",
+        "opera",
+        "vivaldi",
+        "chromium",
+        "whale",
+        "firefox",
+        "safari",
     )
 
     # Browser profile paths for existence checking (Windows + Linux)
@@ -98,46 +96,6 @@ class VideoDownloader:
         "chromium": "chromium.exe",
         "whale": "whale.exe",
     }
-
-    # Player client strategies - tried in order on failure
-    # Each strategy has different trade-offs for bot detection vs features
-    PLAYER_STRATEGIES: list[dict[str, Any]] = [
-        # Strategy 1: Standard with cookies (most features, best quality)
-        {
-            "name": "standard",
-            "clients": ["web", "android", "ios"],
-            "needs_cookies": True,
-            "description": "Full-featured with authentication",
-        },
-        # Strategy 2: Embedded (no PO tokens needed, fewer 403s)
-        {
-            "name": "embedded",
-            "clients": ["web_embedded"],
-            "needs_cookies": False,
-            "description": "Embedded player, no auth needed",
-        },
-        # Strategy 3: Android SDK-less (2025 workaround for bot detection)
-        {
-            "name": "android_sdkless",
-            "clients": ["android_sdkless", "tv"],
-            "needs_cookies": False,
-            "description": "Mobile/TV clients, bypasses many restrictions",
-        },
-        # Strategy 4: TV client only (last resort for restricted content)
-        {
-            "name": "tv_only",
-            "clients": ["tv"],
-            "needs_cookies": False,
-            "description": "TV client only, minimal features",
-        },
-        # Strategy 5: Aggressive - all clients (nuclear option)
-        {
-            "name": "aggressive",
-            "clients": ["web", "web_embedded", "android", "android_sdkless", "ios", "tv"],
-            "needs_cookies": True,
-            "description": "Try all clients simultaneously",
-        },
-    ]
 
     def __init__(self, runtime_manager: RuntimeManager, config: AppConfig) -> None:
         """
@@ -279,11 +237,12 @@ class VideoDownloader:
             Path to cookies.txt if found and valid, None otherwise
         """
         from video_downloader.utils.path_utils import get_application_path
+        from video_downloader.utils.user_dirs import get_downloads_folder
 
         search_locations = [
             get_application_path() / "cookies.txt",
             Path.home() / "cookies.txt",
-            Path.home() / "Downloads" / "cookies.txt",
+            get_downloads_folder() / "cookies.txt",
         ]
 
         for location in search_locations:
@@ -390,8 +349,16 @@ class VideoDownloader:
             "merge_output_format": "mp4",
         }
 
-        # Check if audio format requested
+        # Native quality: no re-encoding, no postprocessors
         quality_lower = quality.lower()
+        if quality_lower == "native":
+            return {
+                "format": "bestvideo+bestaudio/best",
+                "merge_output_format": "mkv",
+                "postprocessors": [],
+            }
+
+        # Check if audio format requested
         if audio_only or quality_lower in AUDIO_FORMATS:
             audio_config = AUDIO_FORMATS.get(quality_lower, AUDIO_FORMATS["mp3"])
 
@@ -496,19 +463,13 @@ class VideoDownloader:
             "no_warnings": False,
             "quiet": False,
             "no_color": True,
-            "retries": self.config.download.retry_attempts,
-            "fragment_retries": 10,  # Retry failed fragments
-            "socket_timeout": 30,
+            "retries": 10,
+            "fragment_retries": "infinite",
+            "socket_timeout": 15,
+            "file_access_retries": 3,
             "noplaylist": True,  # Default: download single video for safety
             # Enable remote EJS components for YouTube challenge solving
             "remote_components": ["ejs:github"],
-            # YouTube-specific options for robustness
-            "extractor_args": {
-                "youtube": {
-                    # Use multiple player clients for fallback
-                    "player_client": ["web", "android", "ios"],
-                }
-            },
         }
 
         # Configure cookies from available browsers (also sets _selected_browser)
@@ -547,11 +508,15 @@ class VideoDownloader:
             logger.info(f"Quality: {quality} (format: {format_config['format']})")
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+                retcode = ydl.download([url])
 
             if self._cancelled:
                 logger.info("Download cancelled by user")
                 return False
+
+            if retcode != 0:
+                logger.error(f"yt-dlp returned non-zero exit code: {retcode}")
+                raise DownloadError(f"Download failed (yt-dlp exit code {retcode})")
 
             logger.info("Download complete")
             return True
@@ -635,7 +600,9 @@ class VideoDownloader:
         self._cancelled = True
         logger.info("Download cancellation requested")
 
-    def _calculate_backoff(self, attempt: int, base_delay: float = 2.0, max_delay: float = 30.0) -> float:
+    def _calculate_backoff(
+        self, attempt: int, base_delay: float = 2.0, max_delay: float = 30.0
+    ) -> float:
         """
         Calculate exponential backoff delay with jitter.
 
@@ -647,7 +614,7 @@ class VideoDownloader:
         Returns:
             Delay in seconds
         """
-        delay = min(base_delay * (2 ** attempt), max_delay)
+        delay = min(base_delay * (2**attempt), max_delay)
         # Add jitter (0-50% of delay) to prevent thundering herd
         jitter = random.uniform(0, delay * 0.5)
         return delay + jitter
@@ -685,85 +652,6 @@ class VideoDownloader:
         # Unknown error - try to recover
         return True, "unknown"
 
-    def _build_strategy_options(
-        self,
-        output_dir: Path,
-        quality: str,
-        audio_only: bool,
-        strategy: dict[str, Any],
-    ) -> dict[str, Any]:
-        """
-        Build yt-dlp options for a specific player strategy.
-
-        Args:
-            output_dir: Output directory
-            quality: Quality preset
-            audio_only: Whether to download audio only
-            strategy: Player strategy configuration
-
-        Returns:
-            yt-dlp options dict
-        """
-        format_config = self._get_format_config(quality, audio_only)
-
-        # Determine audio format for template
-        quality_lower = quality.lower()
-        audio_format = None
-        if audio_only or quality_lower in AUDIO_FORMATS:
-            audio_format = AUDIO_FORMATS.get(quality_lower, AUDIO_FORMATS["mp3"])["codec"]
-
-        ydl_opts: dict[str, Any] = {
-            **self.runtime_manager.get_ytdlp_options(),
-            "outtmpl": self._build_output_template(output_dir, audio_format),
-            "restrictfilenames": True,
-            "windowsfilenames": True,
-            "format": format_config["format"],
-            "postprocessors": format_config["postprocessors"],
-            "ignoreerrors": False,
-            "no_warnings": False,
-            "quiet": False,
-            "no_color": True,
-            "retries": 10,
-            "fragment_retries": 10,
-            "socket_timeout": 30,
-            "noplaylist": True,
-            # Rate limiting - helps avoid detection
-            "sleep_interval": 2,
-            "max_sleep_interval": 5,
-            "sleep_interval_requests": 1,
-            # Enable remote EJS components for YouTube challenge solving
-            "remote_components": ["ejs:github"],
-            # Strategy-specific player clients
-            "extractor_args": {
-                "youtube": {
-                    "player_client": strategy["clients"],
-                }
-            },
-        }
-
-        # Only add cookies if strategy needs them
-        if strategy["needs_cookies"]:
-            ydl_opts = self._configure_browser_cookies(ydl_opts)
-        else:
-            self._selected_browser = None
-
-        # Set User-Agent (match browser or random)
-        if self._selected_browser:
-            user_agent = get_matching_user_agent(self._selected_browser)
-        else:
-            user_agent = get_random_user_agent()
-        ydl_opts["http_headers"] = {"User-Agent": user_agent}
-
-        # Add merge format for video
-        if format_config.get("merge_output_format"):
-            ydl_opts["merge_output_format"] = format_config["merge_output_format"]
-
-        # Add thumbnail for audio
-        if format_config.get("writethumbnail"):
-            ydl_opts["writethumbnail"] = True
-
-        return ydl_opts
-
     def download_with_retry(
         self,
         url: str,
@@ -771,13 +659,10 @@ class VideoDownloader:
         progress_callback: Callable[[dict[str, Any]], None] | None = None,
         quality: str = "best",
         audio_only: bool = False,
-        max_strategies: int = 4,
+        max_retries: int = 3,
     ) -> bool:
         """
-        Download with automatic strategy escalation on failure.
-
-        Tries increasingly aggressive player client strategies until success
-        or all strategies are exhausted. Includes exponential backoff.
+        Download with automatic retry and exponential backoff.
 
         Args:
             url: Video URL to download
@@ -785,34 +670,23 @@ class VideoDownloader:
             progress_callback: Optional progress callback
             quality: Quality preset
             audio_only: Audio-only download
-            max_strategies: Maximum number of strategies to try (1-5)
+            max_retries: Maximum number of retry attempts
 
         Returns:
             True if download succeeded
 
         Raises:
-            DownloadError: If all strategies fail
+            DownloadError: If all retries fail
         """
         self._cancelled = False
         last_error: Exception | None = None
-        strategies_to_try = min(max_strategies, len(self.PLAYER_STRATEGIES))
 
-        # Ensure output directory exists
-        if output_path.suffix:
-            output_dir = output_path.parent
-        else:
-            output_dir = output_path
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        for attempt, strategy in enumerate(self.PLAYER_STRATEGIES[:strategies_to_try]):
+        for attempt in range(max_retries):
             if self._cancelled:
                 logger.info("Download cancelled by user")
                 return False
 
-            logger.info(
-                f"Attempt {attempt + 1}/{strategies_to_try}: "
-                f"strategy '{strategy['name']}' - {strategy['description']}"
-            )
+            logger.info(f"Attempt {attempt + 1}/{max_retries}")
 
             # Apply backoff delay (except for first attempt)
             if attempt > 0:
@@ -821,31 +695,31 @@ class VideoDownloader:
                 time.sleep(delay)
 
             try:
-                ydl_opts = self._build_strategy_options(
-                    output_dir, quality, audio_only, strategy
+                success = self.download(
+                    url=url,
+                    output_path=output_path,
+                    progress_callback=progress_callback,
+                    quality=quality,
+                    audio_only=audio_only,
                 )
+                if success:
+                    return True
 
-                if progress_callback:
-                    ydl_opts["progress_hooks"] = [self._create_progress_hook(progress_callback)]
+                # download() returned False (cancelled)
+                return False
 
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([url])
-
-                logger.info(f"Download succeeded with strategy: {strategy['name']}")
-                return True
-
-            except yt_dlp.utils.DownloadError as e:
+            except DownloadError as e:
                 last_error = e
                 error_msg = str(e)
                 is_recoverable, error_category = self._classify_error(error_msg)
 
                 if not is_recoverable:
                     logger.error(f"Fatal error ({error_category}): {error_msg}")
-                    raise DownloadError(f"Video cannot be downloaded: {error_msg}") from e
+                    raise
 
                 logger.warning(
-                    f"Recoverable error ({error_category}) with strategy "
-                    f"'{strategy['name']}': {error_msg[:100]}..."
+                    f"Recoverable error ({error_category}) on attempt "
+                    f"{attempt + 1}: {error_msg[:100]}..."
                 )
                 continue
 
@@ -856,11 +730,10 @@ class VideoDownloader:
 
             except Exception as e:
                 last_error = e
-                logger.warning(f"Unexpected error with strategy '{strategy['name']}': {e}")
+                logger.warning(f"Unexpected error on attempt {attempt + 1}: {e}")
                 continue
 
-        # All strategies exhausted
+        # All retries exhausted
         raise DownloadError(
-            f"All {strategies_to_try} download strategies failed. "
-            f"Last error: {last_error}"
+            f"All {max_retries} download attempts failed. Last error: {last_error}"
         ) from last_error

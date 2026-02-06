@@ -35,6 +35,5 @@ echo   SETUP COMPLETE
 echo ==========================================
 echo.
 echo To run: double-click run.bat
-echo To run windowless: double-click run_windowless.vbs
 echo.
 pause

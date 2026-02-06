@@ -10,22 +10,20 @@ from pathlib import Path
 from typing import Any
 
 from video_downloader.utils.exceptions import ConfigurationError
+from video_downloader.utils.user_dirs import get_downloads_folder
 
 
 def get_default_downloads_folder() -> Path:
-    """
-    Get the user's default Downloads folder.
+    """Get the user's default Downloads folder via Windows Shell API.
 
-    Works across different Windows usernames and platforms.
+    Uses SHGetKnownFolderPath on Windows for correct resolution even when
+    the Downloads folder has been relocated, synced with OneDrive, or
+    the system language is not English.
 
     Returns:
-        Path to user's Downloads folder
+        Path to user's real Downloads folder.
     """
-    downloads = Path.home() / "Downloads"
-    if downloads.exists():
-        return downloads
-    # Fallback to home directory if Downloads doesn't exist
-    return Path.home()
+    return get_downloads_folder()
 
 
 @dataclass
@@ -109,7 +107,7 @@ class AppConfig:
 
             return cls(
                 title=app_data.get("title", "Video Downloader"),
-                version=app_data.get("version", "1.0.0"),
+                version=app_data.get("version", "1.1.0"),
                 download=DownloadConfig(
                     output_dir=Path(download_data.get("output_dir", "downloads")),
                     max_concurrent=download_data.get("max_concurrent", 3),
@@ -136,7 +134,7 @@ class AppConfig:
 
 [app]
 title = "Video Downloader"
-version = "1.0.0"
+version = "1.1.0"
 
 [download]
 # Output directory for downloaded videos

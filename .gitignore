@@ -32,7 +32,7 @@ bin/
 downloads/
 *.log
 config.toml
-uv.lock
+
 
 # Test artifacts
 .pytest_cache/
@@ -79,3 +79,6 @@ temp/
 
 # Editor backups
 \#*\#
+
+# Claude Code project memory
+CLAUDE*.md

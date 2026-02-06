@@ -14,7 +14,9 @@ from datetime import datetime
 from pathlib import Path
 
 # Test configuration
-DOWNLOADS_DIR = Path.home() / "Downloads" / "video_downloader_tests"
+from video_downloader.utils.user_dirs import get_downloads_folder
+
+DOWNLOADS_DIR = get_downloads_folder() / "video_downloader_tests"
 PROJECT_DIR = Path(__file__).parent.parent
 VENV_PYTHON = PROJECT_DIR / ".venv" / "Scripts" / "python.exe"
 

@@ -14,6 +14,7 @@ APP_VERSION: Final[str] = "1.1.0"
 # Video quality presets
 VIDEO_QUALITIES: Final[dict[str, str]] = {
     "best": "bestvideo+bestaudio/best",
+    "native": "bestvideo+bestaudio/best",
     "2160p": "bestvideo[height<=2160]+bestaudio/best",
     "1080p": "bestvideo[height<=1080]+bestaudio/best",
     "720p": "bestvideo[height<=720]+bestaudio/best",
@@ -34,6 +35,7 @@ AUDIO_FORMATS: Final[dict[str, dict[str, str]]] = {
 # GUI quality dropdown options
 GUI_QUALITY_OPTIONS: Final[list[str]] = [
     "best",
+    "native",
     "2160p",
     "1080p",
     "720p",
@@ -139,7 +141,11 @@ def get_matching_user_agent(browser: str) -> str:
     for ua in USER_AGENTS:
         if browser_lower == "firefox" and "Firefox" in ua:
             return ua
-        elif browser_lower in ("chrome", "chromium", "brave", "vivaldi", "opera", "whale") and "Chrome" in ua and "Edg" not in ua:
+        elif (
+            browser_lower in ("chrome", "chromium", "brave", "vivaldi", "opera", "whale")
+            and "Chrome" in ua
+            and "Edg" not in ua
+        ):
             return ua
         elif browser_lower == "edge" and "Edg" in ua:
             return ua

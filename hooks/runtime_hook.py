@@ -36,15 +36,6 @@ def configure_paths() -> None:
         if os.path.exists(ffmpeg_exe):
             os.environ['FFMPEG_BINARY'] = ffmpeg_exe
 
-        # Ensure temp directory exists next to exe
-        exe_dir = os.path.dirname(sys.executable)
-        temp_dir = os.path.join(exe_dir, 'temp')
-        os.makedirs(temp_dir, exist_ok=True)
-
-        # Set environment variables for temp
-        os.environ['TEMP'] = temp_dir
-        os.environ['TMP'] = temp_dir
-
 
 # Run configuration on import
 configure_dpi_awareness()

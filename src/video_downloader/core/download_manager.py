@@ -99,8 +99,8 @@ class ThreadedDownloadManager:
                 self._send_update("error", str(e))
                 return
 
-            # Create output directory
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            # Ensure output directory exists
+            output_path.mkdir(parents=True, exist_ok=True)
 
             # Create downloader
             self.current_downloader = VideoDownloader(self.runtime_manager, self.config)
@@ -109,10 +109,10 @@ class ThreadedDownloadManager:
             def progress_cb(progress_info: dict[str, Any]) -> None:
                 self._send_update("progress", progress_info)
 
-            # Start download
+            # Start download with automatic strategy escalation
             self._send_update("status", f"Starting download: {url}")
 
-            success = self.current_downloader.download(
+            success = self.current_downloader.download_with_retry(
                 validated_url, output_path, progress_cb, quality, audio_only
             )
 

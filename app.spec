@@ -5,7 +5,7 @@ PyInstaller spec file for Video Downloader.
 Builds a standalone Windows executable with bundled Deno and FFmpeg.
 """
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 import sys
 from pathlib import Path
 
@@ -35,6 +35,9 @@ if (project_root / 'bin' / 'ffprobe.exe').exists():
 # Collect CustomTkinter data files
 datas += collect_data_files('customtkinter')
 
+# CRITICAL: Bundle yt_dlp_ejs JavaScript files (YouTube EJS challenge solving)
+datas += collect_data_files('yt_dlp_ejs', include_py_files=False, includes=['**/*.js'])
+
 a = Analysis(
     ['src/video_downloader/__main__.py'],
     pathex=[str(project_root), str(project_root / 'src')],
@@ -46,13 +49,26 @@ a = Analysis(
         'yt_dlp.extractor.youtube',
         'yt_dlp.extractor.vimeo',
         'yt_dlp.extractor.common',
+        'yt_dlp.extractor.generic',
+        'yt_dlp.compat._legacy',
+        'yt_dlp.compat._deprecated',
+        'yt_dlp.utils._legacy',
+        'yt_dlp.utils._deprecated',
+        'yt_dlp.networking',
+        'yt_dlp.networking._helper',
         'yt_dlp.postprocessor',
+        'yt_dlp_ejs',
+        'mutagen',
+        'brotli',
+        'certifi',
+        'Cryptodome',
+        'websockets',
         'customtkinter',
         'typer',
         'rich',
         'PIL',
         'PIL._tkinter_finder',
-    ],
+    ] + collect_submodules('websockets') + collect_submodules('yt_dlp.networking'),
     hookspath=['hooks'],
     hooksconfig={},
     runtime_hooks=['hooks/runtime_hook.py'] if (project_root / 'hooks' / 'runtime_hook.py').exists() else [],
