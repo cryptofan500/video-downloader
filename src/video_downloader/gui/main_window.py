@@ -219,6 +219,21 @@ class MainWindow(ctk.CTk):
         else:
             self.diagnostics.log("FFmpeg: NOT FOUND", "ERROR")
 
+        # Check VC++ Redistributable
+        vcruntime = (
+            Path(os.environ.get("SystemRoot", r"C:\Windows"))
+            / "System32"
+            / "vcruntime140.dll"
+        )
+        if vcruntime.exists():
+            self.diagnostics.log("VC++ Runtime: Installed", "SUCCESS")
+        else:
+            self.diagnostics.log(
+                "VC++ Runtime: NOT FOUND - Download from "
+                "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+                "WARNING",
+            )
+
         self.diagnostics.log(f"Output directory: {self.config.download.output_dir}")
         self.diagnostics.log("=========================")
 
