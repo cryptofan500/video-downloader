@@ -4,16 +4,9 @@ Transcription module using faster-whisper.
 Optional feature - gracefully handles missing dependencies.
 """
 
-from typing import TYPE_CHECKING
+import importlib.util
 
-WHISPER_AVAILABLE = False
-
-try:
-    from faster_whisper import WhisperModel
-
-    WHISPER_AVAILABLE = True
-except ImportError:
-    pass
+WHISPER_AVAILABLE = importlib.util.find_spec("faster_whisper") is not None
 
 
 def is_transcription_available() -> bool:

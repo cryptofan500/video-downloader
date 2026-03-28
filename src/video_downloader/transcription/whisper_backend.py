@@ -98,9 +98,9 @@ class TranscriptionService:
             str(audio_path),
             beam_size=self.beam_size,
             vad_filter=True,  # Skip silence for speed
-            vad_parameters=dict(
-                min_silence_duration_ms=500,
-            ),
+            vad_parameters={
+                "min_silence_duration_ms": 500,
+            },
         )
 
         # Collect segments with progress

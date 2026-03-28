@@ -21,7 +21,8 @@ BIN_DIR = Path(__file__).parent.parent / "bin"
 FFMPEG_URL = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 
 # Deno runtime for YouTube JS execution
-DENO_URL = "https://github.com/denoland/deno/releases/download/v2.1.9/deno-x86_64-pc-windows-msvc.zip"
+# Last updated: 2026-03-28 (Deno v2.7.9)
+DENO_URL = "https://github.com/denoland/deno/releases/download/v2.7.9/deno-x86_64-pc-windows-msvc.zip"
 
 
 def download_and_extract(url: str, target_files: list[str]) -> None:

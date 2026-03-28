@@ -88,15 +88,17 @@ class AppConfig:
             raise ConfigurationError(f"Configuration file not found: {config_path}")
 
         try:
-            with open(config_path, "rb") as f:
+            with config_path.open("rb") as f:
                 data = tomllib.load(f)
 
             return cls._from_dict(data)
 
         except tomllib.TOMLDecodeError as e:
-            raise ConfigurationError(f"Invalid TOML syntax: {e}")
+            raise ConfigurationError(f"Invalid TOML syntax: {e}") from e
+        except ConfigurationError:
+            raise
         except Exception as e:
-            raise ConfigurationError(f"Failed to load configuration: {e}")
+            raise ConfigurationError(f"Failed to load configuration: {e}") from e
 
     @classmethod
     def _from_dict(cls, data: dict[str, Any]) -> "AppConfig":
@@ -107,7 +109,7 @@ class AppConfig:
 
             return cls(
                 title=app_data.get("title", "Video Downloader"),
-                version=app_data.get("version", "1.1.0"),
+                version=app_data.get("version", "2.0.0"),
                 download=DownloadConfig(
                     output_dir=Path(download_data.get("output_dir", "downloads")),
                     max_concurrent=download_data.get("max_concurrent", 3),
@@ -117,7 +119,7 @@ class AppConfig:
                 ),
             )
         except Exception as e:
-            raise ConfigurationError(f"Invalid configuration structure: {e}")
+            raise ConfigurationError(f"Invalid configuration structure: {e}") from e
 
     @classmethod
     def create_default(cls, config_path: Path) -> "AppConfig":
@@ -134,7 +136,7 @@ class AppConfig:
 
 [app]
 title = "Video Downloader"
-version = "1.1.0"
+version = "2.0.0"
 
 [download]
 # Output directory for downloaded videos
@@ -160,4 +162,4 @@ quality = "best"
             config_path.write_text(default_toml, encoding="utf-8")
             return cls.from_toml(config_path)
         except Exception as e:
-            raise ConfigurationError(f"Failed to create default config: {e}")
+            raise ConfigurationError(f"Failed to create default config: {e}") from e

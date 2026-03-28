@@ -88,7 +88,7 @@ class URLValidator:
         except ValidationError:
             raise
         except Exception as e:
-            raise ValidationError(f"URL validation failed: {e}")
+            raise ValidationError(f"URL validation failed: {e}") from e
 
 
 class PathValidator:
@@ -154,10 +154,10 @@ class PathValidator:
             # Verify path is within base directory
             try:
                 full_path.relative_to(self.base_dir)
-            except ValueError:
+            except ValueError as e:
                 raise ValidationError(
                     f"Path traversal detected. Path must be within {self.base_dir}"
-                )
+                ) from e
 
             # Check for Windows reserved names
             if full_path.name.upper().split(".")[0] in self.RESERVED_NAMES:
@@ -168,4 +168,4 @@ class PathValidator:
         except ValidationError:
             raise
         except Exception as e:
-            raise ValidationError(f"Path validation failed: {e}")
+            raise ValidationError(f"Path validation failed: {e}") from e

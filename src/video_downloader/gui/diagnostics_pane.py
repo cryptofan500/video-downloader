@@ -148,15 +148,6 @@ class DiagnosticsPane(ctk.CTkFrame):
         """
         timestamp = datetime.now().strftime("%H:%M:%S")
 
-        # Color coding by level
-        color_map = {
-            "INFO": "#FFFFFF",
-            "SUCCESS": "#00FF00",
-            "WARNING": "#FFA500",
-            "ERROR": "#FF0000",
-        }
-        color = color_map.get(level, "#FFFFFF")
-
         log_entry = f"[{timestamp}] [{level}] {message}\n"
 
         # Make textbox temporarily editable

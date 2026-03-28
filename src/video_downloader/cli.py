@@ -92,7 +92,7 @@ def download(
             console.print("[yellow]Using default configuration (no config.toml found)[/yellow]")
     except ConfigurationError as e:
         console.print(f"[red]Configuration error: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Validate URL
     try:
@@ -100,7 +100,7 @@ def download(
         console.print(f"[green]✓[/green] URL validated: {validated_url}")
     except ValidationError as e:
         console.print(f"[red]✗ Invalid URL: {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Initialize runtime manager
     try:
@@ -108,7 +108,7 @@ def download(
         console.print(f"[green]✓[/green] Deno runtime: {runtime_manager.deno_path}")
     except RuntimeNotFoundError as e:
         console.print(f"[red]✗ {e}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Check FFmpeg
     try:
@@ -192,21 +192,21 @@ def download(
 
         except NetworkError as e:
             console.print(f"\n[red]✗ Network error: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         except DownloadError as e:
             console.print(f"\n[red]✗ Download error: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
         except KeyboardInterrupt:
             console.print("\n[yellow]⚠ Download cancelled by user[/yellow]")
-            raise typer.Exit(130)
+            raise typer.Exit(130) from None
 
         except Exception as e:
             console.print(f"\n[red]✗ Unexpected error: {e}[/red]")
             if verbose:
                 console.print_exception()
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
 
 @app.command()
