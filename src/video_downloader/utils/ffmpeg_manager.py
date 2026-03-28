@@ -5,6 +5,7 @@ Handles FFmpeg executable detection from bundled location or system PATH.
 """
 
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -88,6 +89,7 @@ class FFmpegManager:
         try:
             from video_downloader.utils.path_utils import get_sanitized_env
 
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 [str(self.ffmpeg_path), "-version"],
                 capture_output=True,
@@ -95,6 +97,7 @@ class FFmpegManager:
                 timeout=5,
                 shell=False,  # CRITICAL: No shell injection
                 env=get_sanitized_env(),
+                creationflags=creationflags,
             )
 
             if result.returncode == 0:
@@ -143,6 +146,7 @@ class FFmpegManager:
         try:
             from video_downloader.utils.path_utils import get_sanitized_env
 
+            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 cmd,
                 shell=False,  # CRITICAL: Prevents command injection
@@ -151,6 +155,7 @@ class FFmpegManager:
                 text=True,
                 timeout=timeout,
                 env=get_sanitized_env(),
+                creationflags=creationflags,
             )
 
             success = result.returncode == 0
