@@ -107,6 +107,7 @@ class VideoDownloader:
         self._cancelled = False
         self._fallback_browsers: list[str] = []  # Store fallback browsers for retry
         self._selected_browser: str | None = None  # Track selected browser for User-Agent matching
+        self.last_downloaded_file: Path | None = None
 
     def _is_browser_installed(self, browser: str) -> bool:
         """
@@ -417,6 +418,10 @@ class VideoDownloader:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        # Ensure download archive directory exists
+        archive_dir = Path.home() / ".video_downloader"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
         # Get format configuration
         format_config = self._get_format_config(quality, audio_only)
 
@@ -445,6 +450,7 @@ class VideoDownloader:
             "noplaylist": True,  # Default: download single video for safety
             # Enable remote EJS components for YouTube challenge solving
             "remote_components": ["ejs:github"],
+            "download_archive": str(archive_dir / "archive.txt"),
         }
 
         # Configure cookies from available browsers (also sets _selected_browser)
@@ -548,12 +554,15 @@ class VideoDownloader:
                     callback(progress_info)
 
                 elif d["status"] == "finished":
+                    filename = d.get("filename") or str(
+                        d.get("info_dict", {}).get("filepath", "")
+                    )
+                    if filename:
+                        self.last_downloaded_file = Path(filename)
                     callback(
                         {
                             "status": "complete",
-                            "filename": d.get(
-                                "filename", str(d.get("info_dict", {}).get("filepath", ""))
-                            ),
+                            "filename": filename,
                         }
                     )
 
