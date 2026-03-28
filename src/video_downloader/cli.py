@@ -123,9 +123,8 @@ def download(
 
     # Determine output path
     if output is None:
-        config.download.output_dir.mkdir(parents=True, exist_ok=True)
-        ext = "mp3" if audio_only or quality == "audio" else "mp4"
-        output = config.download.output_dir / f"video.{ext}"
+        output = config.download.output_dir
+        output.mkdir(parents=True, exist_ok=True)
     else:
         output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -176,7 +175,7 @@ def download(
                     progress.update(task, completed=100)
 
         try:
-            success = downloader.download(
+            success = downloader.download_with_retry(
                 validated_url,
                 output,
                 progress_callback,

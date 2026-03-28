@@ -38,7 +38,7 @@ class TestURLValidator:
     
     def test_dangerous_characters_raise_error(self):
         """Test URL with dangerous characters raises ValidationError."""
-        with pytest.raises(ValidationError, match="dangerous characters"):
+        with pytest.raises(ValidationError, match="dangerous patterns"):
             URLValidator.validate("https://example.com/video?cmd=`rm -rf /`")
     
     def test_private_ip_raises_error(self):
