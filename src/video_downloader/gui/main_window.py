@@ -7,6 +7,7 @@ Provides GUI for video downloading with progress tracking and diagnostics.
 import logging
 import os
 import queue
+import threading
 from pathlib import Path
 from tkinter import filedialog
 from typing import Any
@@ -236,6 +237,25 @@ class MainWindow(ctk.CTk):
 
         self.diagnostics.log(f"Output directory: {self.config.download.output_dir}")
         self.diagnostics.log("=========================")
+
+        # Check for updates in background after a short delay
+        def _check_update() -> None:
+            import time
+
+            time.sleep(2)
+            from video_downloader.utils.update_checker import check_for_update
+
+            has_update, latest = check_for_update(self.config.version)
+            if has_update and latest:
+                self.after(
+                    0,
+                    lambda: self.diagnostics.log(
+                        f"Update available: v{latest} (you have v{self.config.version})",
+                        "WARNING",
+                    ),
+                )
+
+        threading.Thread(target=_check_update, daemon=True).start()
 
     def _start_download(self) -> None:
         """Start download in background thread."""
