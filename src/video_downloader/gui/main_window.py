@@ -106,10 +106,10 @@ class MainWindow(ctk.CTk):
         quality_label = ctk.CTkLabel(quality_frame, text="Quality:", font=("Helvetica", 12))
         quality_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-        self.quality_var = ctk.StringVar(value="best")
+        self.quality_var = ctk.StringVar(value="native")
         self.quality_dropdown = ctk.CTkOptionMenu(
             quality_frame,
-            values=["best", "native", "2160p", "1080p", "720p", "480p", "mp3", "wav", "flac"],
+            values=["native", "best", "2160p", "1080p", "720p", "480p", "mp3", "wav", "flac"],
             variable=self.quality_var,
         )
         self.quality_dropdown.grid(row=0, column=1, padx=10, pady=10)

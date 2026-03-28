@@ -50,7 +50,7 @@ def download(
         None, "--output", "-o", help="Output directory (default: configured downloads folder)"
     ),
     quality: str = typer.Option(
-        "best", "--quality", "-q", help="Video quality: best, 2160p, 1080p, 720p, 480p, audio"
+        "native", "--quality", "-q", help="Video quality: native, best, 2160p, 1080p, 720p, 480p, audio"
     ),
     audio_only: bool = typer.Option(False, "--audio-only", "-a", help="Download audio only"),
     verbose: bool = typer.Option(

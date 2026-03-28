@@ -37,8 +37,8 @@ AUDIO_FORMATS: Final[dict[str, dict[str, str]]] = {
 
 # GUI quality dropdown options
 GUI_QUALITY_OPTIONS: Final[list[str]] = [
-    "best",
     "native",
+    "best",
     "2160p",
     "1080p",
     "720p",

@@ -321,7 +321,7 @@ class VideoDownloader:
         config: dict[str, Any] = {
             "format": "bestvideo+bestaudio/best",
             "postprocessors": [],
-            "merge_output_format": "mp4",
+            "merge_output_format": "mkv",
         }
 
         # Native quality: no re-encoding, no postprocessors
@@ -370,7 +370,7 @@ class VideoDownloader:
         else:
             # Video quality
             config["format"] = VIDEO_QUALITIES.get(quality_lower, VIDEO_QUALITIES["best"])
-            config["merge_output_format"] = "mp4"
+            config["merge_output_format"] = "mkv"
 
             # Add metadata to video
             config["postprocessors"].append(
