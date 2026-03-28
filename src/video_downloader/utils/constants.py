@@ -9,7 +9,7 @@ from typing import Final
 
 # Application metadata
 APP_NAME: Final[str] = "Video Downloader"
-APP_VERSION: Final[str] = "1.1.0"
+APP_VERSION: Final[str] = "2.0.0"
 
 # Video quality presets
 VIDEO_QUALITIES: Final[dict[str, str]] = {

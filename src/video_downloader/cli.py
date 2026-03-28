@@ -80,7 +80,7 @@ def download(
             # Use defaults
             config = AppConfig(
                 title="Video Downloader",
-                version="1.1.0",
+                version="2.0.0",
                 download=DownloadConfig(
                     output_dir=Path("downloads"),
                     max_concurrent=3,
