@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from video_downloader.utils.exceptions import RuntimeNotFoundError
-from video_downloader.utils.path_utils import get_bin_path
+from video_downloader.utils.path_utils import get_bin_path, get_subprocess_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -127,19 +127,16 @@ class RuntimeManager:
         Returns:
             True if FFmpeg responds correctly
         """
-        import os
-
         if not self.ffmpeg_path:
             return False
 
         try:
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 [str(self.ffmpeg_path), "-version"],
                 capture_output=True,
                 text=True,
                 timeout=10,
-                creationflags=creationflags,
+                **get_subprocess_kwargs(),
             )
             if result.returncode == 0 and "ffmpeg version" in result.stdout.lower():
                 logger.info(f"FFmpeg verified: {result.stdout.split(chr(10))[0]}")
@@ -204,13 +201,12 @@ class RuntimeManager:
             return None
 
         try:
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 [str(self.js_runtime_path), "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5,
-                creationflags=creationflags,
+                **get_subprocess_kwargs(),
             )
             if result.returncode == 0:
                 version = result.stdout.split("\n")[0].strip()
@@ -225,13 +221,12 @@ class RuntimeManager:
             return None
 
         try:
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 [str(self.deno_path), "--version"],
                 capture_output=True,
                 text=True,
                 timeout=5,
-                creationflags=creationflags,
+                **get_subprocess_kwargs(),
             )
             if result.returncode == 0:
                 # First line contains "deno X.X.X"
@@ -252,6 +247,7 @@ class RuntimeManager:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                **get_subprocess_kwargs(),
             )
             if result.returncode == 0:
                 # First line contains version info

@@ -5,8 +5,10 @@ Handles sys._MEIPASS for PyInstaller bundles and provides safe path resolution.
 """
 
 import os
+import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 
 def get_application_path() -> Path:
@@ -111,6 +113,18 @@ def setup_environment_paths() -> None:
         ffmpeg_exe = bin_path / "ffmpeg.exe"
         if ffmpeg_exe.exists():
             os.environ["FFMPEG_BINARY"] = str(ffmpeg_exe)
+
+
+def get_subprocess_kwargs() -> dict[str, Any]:
+    """Get platform-specific subprocess kwargs to prevent console flash on Windows."""
+    kwargs: dict[str, Any] = {}
+    if os.name == "nt":
+        si = subprocess.STARTUPINFO()
+        si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        si.wShowWindow = subprocess.SW_HIDE
+        kwargs["startupinfo"] = si
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+    return kwargs
 
 
 def is_frozen() -> bool:

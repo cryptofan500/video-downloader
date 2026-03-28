@@ -87,9 +87,8 @@ class FFmpegManager:
             return False, "FFmpeg not found", (0, 0, 0)
 
         try:
-            from video_downloader.utils.path_utils import get_sanitized_env
+            from video_downloader.utils.path_utils import get_sanitized_env, get_subprocess_kwargs
 
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 [str(self.ffmpeg_path), "-version"],
                 capture_output=True,
@@ -97,7 +96,7 @@ class FFmpegManager:
                 timeout=5,
                 shell=False,  # CRITICAL: No shell injection
                 env=get_sanitized_env(),
-                creationflags=creationflags,
+                **get_subprocess_kwargs(),
             )
 
             if result.returncode == 0:
@@ -144,9 +143,8 @@ class FFmpegManager:
         cmd = [str(self.ffmpeg_path)] + args
 
         try:
-            from video_downloader.utils.path_utils import get_sanitized_env
+            from video_downloader.utils.path_utils import get_sanitized_env, get_subprocess_kwargs
 
-            creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
             result = subprocess.run(
                 cmd,
                 shell=False,  # CRITICAL: Prevents command injection
@@ -155,7 +153,7 @@ class FFmpegManager:
                 text=True,
                 timeout=timeout,
                 env=get_sanitized_env(),
-                creationflags=creationflags,
+                **get_subprocess_kwargs(),
             )
 
             success = result.returncode == 0
