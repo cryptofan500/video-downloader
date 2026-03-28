@@ -179,8 +179,29 @@ class MainWindow(ctk.CTk):
             self.path_button.configure(text=str(self.output_path))
             self.diagnostics.log(f"Output path changed to: {self.output_path}")
 
+    def _show_cookie_notice(self) -> None:
+        """Show a one-time cookie usage notice on first launch."""
+        from video_downloader.utils.path_utils import get_config_path
+
+        notice_file = get_config_path().parent / ".cookie_notice_shown"
+        if notice_file.exists():
+            return
+
+        self.diagnostics.log(
+            "Note: This app may use cookies from your installed browsers to "
+            "authenticate with video sites. No cookies are sent to third parties.",
+            "WARNING",
+        )
+
+        try:
+            notice_file.parent.mkdir(parents=True, exist_ok=True)
+            notice_file.write_text("shown", encoding="utf-8")
+        except Exception:
+            pass
+
     def _log_system_info(self) -> None:
         """Log system information to diagnostics pane."""
+        self._show_cookie_notice()
         self.diagnostics.log("=== System Information ===")
         self.diagnostics.log(f"Application: {self.config.title} v{self.config.version}")
 
