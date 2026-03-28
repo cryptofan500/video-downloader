@@ -155,6 +155,11 @@ class TestGetFormatConfig:
         pp_keys = [pp["key"] for pp in config["postprocessors"]]
         assert "EmbedThumbnail" in pp_keys
 
+    def test_flac_has_embed_thumbnail(self, downloader):
+        config = downloader._get_format_config("flac")
+        pp_keys = [pp["key"] for pp in config["postprocessors"]]
+        assert "EmbedThumbnail" in pp_keys
+
     def test_audio_only_flag(self, downloader):
         config = downloader._get_format_config("best", audio_only=True)
         assert config["format"] == "bestaudio/best"
