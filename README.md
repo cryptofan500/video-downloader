@@ -15,6 +15,13 @@ A modern video downloader with GUI and CLI, built with Python 3.12+.
 - Right-click context menus for easy copy/paste
 - Downloads to user's Downloads folder by default
 - Both GUI and CLI interfaces
+- Automatic update checker on startup
+
+## Screenshots
+
+![Main Window](docs/screenshot.png)
+
+*Screenshot coming soon*
 
 ## Installation
 
@@ -40,7 +47,7 @@ Download the latest release from [Releases](https://github.com/cryptofan500/vide
 git clone https://github.com/cryptofan500/video-downloader.git
 cd video-downloader
 
-# Run setup script
+# Run setup script (installs deps and fetches FFmpeg + Deno automatically)
 .\setup.bat
 ```
 
@@ -125,6 +132,10 @@ and try again. This is required on some Windows installations.
 - Run `python scripts/fetch_binaries.py` to download automatically
 - Or manually place executables in `bin/` folder
 - Or install system-wide and add to PATH
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
