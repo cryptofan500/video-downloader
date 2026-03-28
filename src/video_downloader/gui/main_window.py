@@ -5,6 +5,7 @@ Provides GUI for video downloading with progress tracking and diagnostics.
 """
 
 import logging
+import os
 import queue
 from pathlib import Path
 from tkinter import filedialog
@@ -155,6 +156,15 @@ class MainWindow(ctk.CTk):
         )
         self.cancel_btn.grid(row=1, column=1, padx=10, pady=(0, 10))
 
+        # Open Folder button (hidden until download completes)
+        self.open_folder_btn = ctk.CTkButton(
+            progress_frame,
+            text="Open Folder",
+            command=self._open_output_folder,
+            width=100,
+        )
+        # Don't grid it yet — shown after download completes
+
         # Diagnostics pane
         self.diagnostics = DiagnosticsPane(self)
         self.diagnostics.grid(row=6, column=0, padx=20, pady=(10, 20), sticky="nsew")
@@ -216,13 +226,21 @@ class MainWindow(ctk.CTk):
         # Let yt-dlp handle filename sanitization - just pass the directory
         output_path = self.output_path
 
-        # Disable buttons and start download
+        # Disable buttons, hide open folder, and start download
         self.download_btn.configure(state="disabled")
         self.cancel_btn.configure(state="normal", fg_color=["#3B8ED0", "#1F6AA5"])
+        self.open_folder_btn.grid_forget()
         self.progress_bar.set(0)
         self.diagnostics.log(f"Starting download: {url}")
 
         self.download_manager.download_in_thread(url, output_path, quality, audio_only)
+
+    def _open_output_folder(self) -> None:
+        """Open the output directory in Windows Explorer."""
+        try:
+            os.startfile(str(self.output_path))
+        except Exception as e:
+            self.diagnostics.log(f"Could not open folder: {e}", "ERROR")
 
     def _cancel_download(self) -> None:
         """Cancel current download."""
@@ -263,6 +281,7 @@ class MainWindow(ctk.CTk):
             self.progress_label.configure(text="Complete!")
             self.download_btn.configure(state="normal")
             self.cancel_btn.configure(state="disabled", fg_color="gray")
+            self.open_folder_btn.grid(row=1, column=2, padx=10, pady=(0, 10))
 
         elif event_type == "error":
             self.diagnostics.log(f"Error: {data}", "ERROR")
