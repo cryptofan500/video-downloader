@@ -38,6 +38,7 @@ class VideoDownloader:
 
     # Complete list of supported browsers in PRIORITY ORDER
     SUPPORTED_BROWSERS: tuple[str, ...] = (
+        "firefox",  # FIRST: plaintext SQLite cookies, immune to encryption changes
         "chrome",
         "edge",
         "brave",
@@ -45,7 +46,6 @@ class VideoDownloader:
         "vivaldi",
         "chromium",
         "whale",
-        "firefox",
         "safari",
     )
 
@@ -274,9 +274,9 @@ class VideoDownloader:
 
         # No cookies available
         logger.warning(
-            "No browser cookies available. Some videos may require authentication. "
-            "Try: (1) Close your browser and retry, (2) Use Firefox, "
-            "(3) Export cookies to cookies.txt"
+            "No browser cookies available. For best results, install Firefox and log into video sites. "
+            "Firefox cookies are most reliable (Chrome encryption may block cookie access). "
+            "Alternatively, export cookies to cookies.txt"
         )
         if "cookiesfrombrowser" in ydl_opts:
             del ydl_opts["cookiesfrombrowser"]
