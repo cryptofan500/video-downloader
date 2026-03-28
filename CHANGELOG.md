@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-28
+
+### Changed
+- Consolidated version to 2.0.0 across all files
+- setup.bat now automatically fetches FFmpeg and Deno binaries
+- Updated Deno runtime to v2.7.9
+- Added test and lint CI job that runs before build
+- Fixed all ruff lint warnings across the codebase
+- Exception chaining with `raise ... from` for proper error tracebacks
+
 ## [1.1.0] - 2026-02-05
 
 ### Added
