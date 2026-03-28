@@ -12,7 +12,6 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
 
 import yt_dlp
 
@@ -25,6 +24,7 @@ from video_downloader.utils.constants import (
     get_random_user_agent,
 )
 from video_downloader.utils.exceptions import DownloadError, NetworkError
+from video_downloader.utils.validators import is_mix_playlist
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,6 @@ class VideoDownloader:
 
     Supports progress callbacks and proper error handling.
     """
-
-    # YouTube Mix playlist prefixes - these are INFINITE and must be limited
-    MIX_PREFIXES = ("RD", "RDAMVM", "RDCMUC", "RDEM", "RDMM", "RDQM", "RDVM")
 
     # Complete list of supported browsers in PRIORITY ORDER
     SUPPORTED_BROWSERS: tuple[str, ...] = (
@@ -110,28 +107,6 @@ class VideoDownloader:
         self._cancelled = False
         self._fallback_browsers: list[str] = []  # Store fallback browsers for retry
         self._selected_browser: str | None = None  # Track selected browser for User-Agent matching
-
-    def _is_mix_playlist(self, url: str) -> bool:
-        """
-        Check if URL is a YouTube Mix (Radio) playlist.
-
-        Mix playlists are dynamically generated and effectively infinite.
-        They require special handling to prevent endless downloads.
-
-        Args:
-            url: URL to check
-
-        Returns:
-            True if URL is a Mix playlist
-        """
-        try:
-            query = parse_qs(urlparse(url).query)
-            if "list" not in query:
-                return False
-            playlist_id = query["list"][0]
-            return any(playlist_id.startswith(prefix) for prefix in self.MIX_PREFIXES)
-        except Exception:
-            return False
 
     def _is_browser_installed(self, browser: str) -> bool:
         """
@@ -484,7 +459,7 @@ class VideoDownloader:
         logger.debug(f"Using User-Agent for {self._selected_browser or 'anonymous'}")
 
         # Detect Mix playlists and log warning
-        if self._is_mix_playlist(url):
+        if is_mix_playlist(url):
             logger.info(
                 "Detected YouTube Mix playlist - downloading single video only. "
                 "Mix playlists are dynamically generated and effectively infinite."

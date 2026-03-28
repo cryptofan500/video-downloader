@@ -11,12 +11,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from urllib.parse import parse_qs, urlparse
 
 import yt_dlp
 
 from video_downloader.core.runtime_manager import RuntimeManager
 from video_downloader.utils.constants import ILLEGAL_FILENAME_CHARS
+from video_downloader.utils.validators import is_mix_playlist as _is_mix_playlist
 
 if TYPE_CHECKING:
     from video_downloader.core.downloader import VideoDownloader
@@ -83,9 +83,6 @@ class PlaylistManager:
         r"youtu\.be/.*\?list=",
     ]
 
-    # YouTube Mix playlist prefixes - these are INFINITE and must be limited
-    MIX_PREFIXES = ("RD", "RDAMVM", "RDCMUC", "RDEM", "RDMM", "RDQM", "RDVM")
-
     # Default limit for Mix playlists (prevent infinite download)
     MIX_PLAYLIST_LIMIT = 25
 
@@ -114,8 +111,7 @@ class PlaylistManager:
         """
         Check if URL is a YouTube Mix (Radio) playlist.
 
-        Mix playlists are dynamically generated and effectively infinite.
-        They require special handling to prevent endless downloads.
+        Delegates to the shared utility function.
 
         Args:
             url: URL to check
@@ -123,14 +119,7 @@ class PlaylistManager:
         Returns:
             True if URL is a Mix playlist
         """
-        try:
-            query = parse_qs(urlparse(url).query)
-            if "list" not in query:
-                return False
-            playlist_id = query["list"][0]
-            return any(playlist_id.startswith(prefix) for prefix in self.MIX_PREFIXES)
-        except Exception:
-            return False
+        return _is_mix_playlist(url)
 
     def get_safe_download_options(self, url: str) -> dict[str, Any]:
         """

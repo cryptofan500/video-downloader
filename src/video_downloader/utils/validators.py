@@ -6,9 +6,33 @@ Provides secure validation for URLs and file paths.
 
 import re
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
+from video_downloader.utils.constants import MIX_PREFIXES
 from video_downloader.utils.exceptions import ValidationError
+
+
+def is_mix_playlist(url: str) -> bool:
+    """
+    Check if URL is a YouTube Mix (Radio) playlist.
+
+    Mix playlists are dynamically generated and effectively infinite.
+    They require special handling to prevent endless downloads.
+
+    Args:
+        url: URL to check
+
+    Returns:
+        True if URL is a Mix playlist
+    """
+    try:
+        query = parse_qs(urlparse(url).query)
+        if "list" not in query:
+            return False
+        playlist_id = query["list"][0]
+        return any(playlist_id.startswith(prefix) for prefix in MIX_PREFIXES)
+    except Exception:
+        return False
 
 
 class URLValidator:

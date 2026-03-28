@@ -11,6 +11,9 @@ from typing import Final
 APP_NAME: Final[str] = "Video Downloader"
 APP_VERSION: Final[str] = "2.0.0"
 
+# YouTube Mix playlist prefixes - these are INFINITE and must be limited
+MIX_PREFIXES: Final[tuple[str, ...]] = ("RD", "RDAMVM", "RDCMUC", "RDEM", "RDMM", "RDQM", "RDVM")
+
 # Video quality presets
 VIDEO_QUALITIES: Final[dict[str, str]] = {
     "best": "bestvideo+bestaudio/best",
