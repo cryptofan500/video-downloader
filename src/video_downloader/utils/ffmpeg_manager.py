@@ -5,7 +5,6 @@ Handles FFmpeg executable detection from bundled location or system PATH.
 """
 
 import logging
-import os
 import re
 import shutil
 import subprocess
