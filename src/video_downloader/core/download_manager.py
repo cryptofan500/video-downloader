@@ -7,7 +7,9 @@ Manages downloads in background threads with queue-based communication.
 import logging
 import queue
 import threading
+import uuid
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -45,9 +47,13 @@ class ThreadedDownloadManager:
         self.config = config
         self.update_callback = update_callback
         self.message_queue: queue.Queue[tuple[str, Any]] = queue.Queue()
-        self.workers: list[threading.Thread] = []
+        self.executor = ThreadPoolExecutor(
+            max_workers=config.download.max_concurrent, thread_name_prefix="dl"
+        )
+        self._active: dict[str, VideoDownloader] = {}
+        self._lock = threading.Lock()
+        self._last_completed_file: Path | None = None
         self.shutdown_event = threading.Event()
-        self.current_downloader: VideoDownloader | None = None
 
     def download_in_thread(
         self,
@@ -55,7 +61,7 @@ class ThreadedDownloadManager:
         output_path: Path,
         quality: str = "best",
         audio_only: bool = False,
-    ) -> None:
+    ) -> str:
         """
         Start download in background thread.
 
@@ -64,18 +70,19 @@ class ThreadedDownloadManager:
             output_path: Output file path
             quality: Video quality
             audio_only: Download audio only
+
+        Returns:
+            task_id: UUID string for tracking this download
         """
-        worker = threading.Thread(
-            target=self._download_worker,
-            args=(url, output_path, quality, audio_only),
-            daemon=True,
-            name=f"DownloadWorker-{url[:30]}",
+        task_id = uuid.uuid4().hex
+        self.executor.submit(
+            self._download_worker, task_id, url, output_path, quality, audio_only
         )
-        self.workers.append(worker)
-        worker.start()
+        return task_id
 
     def _download_worker(
         self,
+        task_id: str,
         url: str,
         output_path: Path,
         quality: str,
@@ -85,11 +92,13 @@ class ThreadedDownloadManager:
         Worker function running in background thread.
 
         Args:
+            task_id: UUID for this download task
             url: Video URL
             output_path: Output path
             quality: Video quality
             audio_only: Audio only flag
         """
+        downloader = None
         try:
             # Validate URL
             self._send_update("status", "Validating URL...")
@@ -103,7 +112,9 @@ class ThreadedDownloadManager:
             output_path.mkdir(parents=True, exist_ok=True)
 
             # Create downloader
-            self.current_downloader = VideoDownloader(self.runtime_manager, self.config)
+            downloader = VideoDownloader(self.runtime_manager, self.config)
+            with self._lock:
+                self._active[task_id] = downloader
 
             # Progress callback
             def progress_cb(progress_info: dict[str, Any]) -> None:
@@ -112,7 +123,7 @@ class ThreadedDownloadManager:
             # Start download with automatic strategy escalation
             self._send_update("status", f"Starting download: {url}")
 
-            success = self.current_downloader.download_with_retry(
+            success = downloader.download_with_retry(
                 validated_url, output_path, progress_cb, quality, audio_only
             )
 
@@ -134,7 +145,11 @@ class ThreadedDownloadManager:
             self._send_update("error", f"Unexpected error: {e}")
 
         finally:
-            self.current_downloader = None
+            with self._lock:
+                self._active.pop(task_id, None)
+            if downloader and downloader.last_downloaded_file:
+                with self._lock:
+                    self._last_completed_file = downloader.last_downloaded_file
 
     def _send_update(self, event_type: str, data: Any) -> None:
         """
@@ -147,20 +162,19 @@ class ThreadedDownloadManager:
         self.message_queue.put((event_type, data))
 
     def cancel_current(self) -> None:
-        """Cancel current download."""
-        if self.current_downloader:
-            self.current_downloader.cancel()
+        """Cancel all active downloads."""
+        with self._lock:
+            for downloader in self._active.values():
+                downloader.cancel()
 
     def shutdown(self) -> None:
         """
         Shutdown all worker threads.
 
-        Cancels current download and waits for threads to finish.
+        Cancels current downloads and waits for threads to finish.
         """
         self.shutdown_event.set()
         self.cancel_current()
-
-        for worker in self.workers:
-            worker.join(timeout=2.0)
+        self.executor.shutdown(wait=True, cancel_futures=True)
 
         logger.info("Download manager shutdown complete")
