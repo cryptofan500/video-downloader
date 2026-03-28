@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-28
+
+### Security
+- Fixed SSRF vulnerability with DNS-resolution-based validation (blocks integer/octal/hex IP bypasses)
+- Blocked userinfo in URLs to prevent authentication-based SSRF
+
+### Fixed
+- Thread memory leak in download manager (replaced raw threads with ThreadPoolExecutor)
+- Race condition when cancelling concurrent downloads (UUID-based task tracking)
+- CLI audio format override (--audio-only now respects user's quality choice like flac/wav)
+- Console window flash during FFmpeg/Deno subprocess calls on Windows
+- DPI awareness conflict between runtime hook and CustomTkinter
+- Reserved filename validation now checks all path components
+
+### Added
+- MKV as default merge container (universal codec compatibility)
+- Firefox prioritized for cookie extraction (immune to Chrome encryption changes)
+- Download archive to prevent re-downloading
+- Actual downloaded file path tracking
+- Artifact attestation for release builds
+- Comprehensive test suite for security and core logic
+
+### Changed
+- Default quality changed to "native" (highest quality, MKV container, no re-encoding)
+
 ## [2.0.0] - 2026-03-28
 
 ### Changed
