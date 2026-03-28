@@ -47,7 +47,7 @@ console = Console()
 def download(
     url: str = typer.Argument(..., help="Video URL to download"),
     output: Path | None = typer.Option(
-        None, "--output", "-o", help="Output file path (default: downloads/video.mp4)"
+        None, "--output", "-o", help="Output directory (default: configured downloads folder)"
     ),
     quality: str = typer.Option(
         "best", "--quality", "-q", help="Video quality: best, 2160p, 1080p, 720p, 480p, audio"
@@ -179,7 +179,7 @@ def download(
                 validated_url,
                 output,
                 progress_callback,
-                quality if not audio_only else "audio",
+                quality,
                 audio_only,
             )
 
