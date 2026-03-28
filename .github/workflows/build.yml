@@ -6,7 +6,31 @@ on:
       - 'v*'
 
 jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      run: pip install uv
+
+    - name: Install dependencies
+      run: uv pip install --system -e ".[dev]"
+
+    - name: Lint
+      run: ruff check src/
+
+    - name: Test
+      run: pytest tests/ -v
+
   build:
+    needs: test
     runs-on: windows-latest
     permissions:
       contents: write
