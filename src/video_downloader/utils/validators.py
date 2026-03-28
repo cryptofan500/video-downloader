@@ -4,7 +4,9 @@ Input validation utilities.
 Provides secure validation for URLs and file paths.
 """
 
+import ipaddress
 import re
+import socket
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -52,17 +54,6 @@ class URLValidator:
         r"<\s*/",  # < /path (redirect)
     ]
 
-    # Private IP patterns for SSRF prevention
-    PRIVATE_IP_PATTERNS = [
-        r"^localhost",
-        r"^127\.",
-        r"^10\.",
-        r"^172\.(1[6-9]|2[0-9]|3[0-1])\.",
-        r"^192\.168\.",
-        r"^\[::1\]",  # IPv6 localhost
-        r"^0\.0\.0\.0",
-    ]
-
     @classmethod
     def validate(cls, url: str) -> str:
         """
@@ -96,11 +87,25 @@ class URLValidator:
             if not parsed.netloc:
                 raise ValidationError("URL must have a valid domain")
 
-            # Block private/local addresses (SSRF prevention)
-            netloc = parsed.netloc.lower()
-            for pattern in cls.PRIVATE_IP_PATTERNS:
-                if re.match(pattern, netloc):
-                    raise ValidationError("Private/local addresses are not allowed")
+            # SSRF Prevention: resolve hostname and check all IPs
+            hostname = (parsed.hostname or "").lower()
+            if not hostname:
+                raise ValidationError("URL must have a valid hostname")
+
+            # Block userinfo in URLs (user:pass@host)
+            if "@" in (parsed.netloc or ""):
+                raise ValidationError("URLs with credentials are not allowed")
+
+            try:
+                results = socket.getaddrinfo(
+                    hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM
+                )
+                for _, _, _, _, addr in results:
+                    ip_obj = ipaddress.ip_address(addr[0])
+                    if not ip_obj.is_global:
+                        raise ValidationError("Private/local addresses are not allowed")
+            except socket.gaierror:
+                pass  # Unresolvable hostnames are OK — they'll fail at download time
 
             # Check for shell injection patterns in the full URL
             for pattern in cls.SHELL_INJECTION_PATTERNS:
@@ -183,9 +188,10 @@ class PathValidator:
                     f"Path traversal detected. Path must be within {self.base_dir}"
                 ) from e
 
-            # Check for Windows reserved names
-            if full_path.name.upper().split(".")[0] in self.RESERVED_NAMES:
-                raise ValidationError(f"Reserved filename: {full_path.name}")
+            # Check for Windows reserved names in all path components
+            for part in full_path.relative_to(self.base_dir).parts:
+                if part.split(".")[0].upper() in self.RESERVED_NAMES:
+                    raise ValidationError(f"Windows reserved name in path: {part}")
 
             return full_path
 
