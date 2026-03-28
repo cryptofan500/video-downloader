@@ -45,6 +45,14 @@ class DiagnosticsPane(ctk.CTkFrame):
         )
         self.textbox.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
+        # Configure color tags for log levels
+        # Access the underlying tk.Text widget inside CTkTextbox
+        inner_text = self.textbox._textbox
+        inner_text.tag_config("SUCCESS", foreground="#00FF00")
+        inner_text.tag_config("WARNING", foreground="#FFA500")
+        inner_text.tag_config("ERROR", foreground="#FF4444")
+        inner_text.tag_config("INFO", foreground="")  # default text color
+
         # Bind right-click context menu
         self.textbox.bind("<Button-3>", self._show_context_menu)
         self.textbox.bind("<Button-2>", self._show_context_menu)  # macOS
@@ -150,11 +158,14 @@ class DiagnosticsPane(ctk.CTkFrame):
 
         log_entry = f"[{timestamp}] [{level}] {message}\n"
 
+        # Determine tag for color
+        tag = level if level in ("INFO", "SUCCESS", "WARNING", "ERROR") else "INFO"
+
         # Make textbox temporarily editable
         self.textbox.configure(state="normal")
 
-        # Insert with color (if supported)
-        self.textbox.insert("end", log_entry)
+        # Insert with color tag
+        self.textbox._textbox.insert("end", log_entry, tag)
 
         # Auto-scroll to bottom
         self.textbox.see("end")
