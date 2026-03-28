@@ -6,18 +6,6 @@ Configures paths and environment for frozen application.
 
 import os
 import sys
-import ctypes
-
-
-def configure_dpi_awareness() -> None:
-    """Enable DPI awareness on Windows."""
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI aware
-    except Exception:
-        try:
-            ctypes.windll.user32.SetProcessDPIAware()
-        except Exception:
-            pass
 
 
 def configure_paths() -> None:
@@ -38,5 +26,4 @@ def configure_paths() -> None:
 
 
 # Run configuration on import
-configure_dpi_awareness()
 configure_paths()
