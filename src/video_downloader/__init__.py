@@ -5,7 +5,7 @@ A production-ready video downloader using yt-dlp with Deno runtime,
 FFmpeg integration, and CustomTkinter GUI.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Pawel Zawadzki"
 __license__ = "MIT"
 

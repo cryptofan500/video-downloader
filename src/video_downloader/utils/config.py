@@ -109,7 +109,7 @@ class AppConfig:
 
             return cls(
                 title=app_data.get("title", "Video Downloader"),
-                version=app_data.get("version", "2.0.0"),
+                version=app_data.get("version", "2.1.0"),
                 download=DownloadConfig(
                     output_dir=Path(download_data.get("output_dir", "downloads")),
                     max_concurrent=download_data.get("max_concurrent", 3),
@@ -136,7 +136,7 @@ class AppConfig:
 
 [app]
 title = "Video Downloader"
-version = "2.0.0"
+version = "2.1.0"
 
 [download]
 # Output directory for downloaded videos

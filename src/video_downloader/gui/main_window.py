@@ -398,7 +398,7 @@ def main() -> None:
 
         config = AppConfig(
             title="Video Downloader",
-            version="2.0.0",
+            version="2.1.0",
             download=DownloadConfig(
                 output_dir=Path("downloads"),
                 max_concurrent=3,

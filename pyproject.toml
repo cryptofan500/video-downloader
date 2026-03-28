@@ -1,6 +1,6 @@
 [project]
 name = "video-downloader"
-version = "2.0.0"
+version = "2.1.0"
 description = "Modern video downloader with GUI, CLI, transcription, and multi-site support"
 readme = "README.md"
 license = { text = "MIT" }
