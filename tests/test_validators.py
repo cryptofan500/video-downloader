@@ -1,14 +1,14 @@
 """
-Sample tests for video downloader.
-
-Demonstrates testing patterns for the application.
+Tests for input validation utilities.
 """
 
-import pytest
 from pathlib import Path
+from unittest.mock import patch
 
-from video_downloader.utils.validators import URLValidator, PathValidator
+import pytest
+
 from video_downloader.utils.exceptions import ValidationError
+from video_downloader.utils.validators import PathValidator, URLValidator
 
 
 class TestURLValidator:
@@ -68,7 +68,7 @@ class TestPathValidator:
     def test_reserved_filename_raises_error(self, tmp_path):
         """Test Windows reserved filename raises ValidationError."""
         validator = PathValidator(tmp_path)
-        with pytest.raises(ValidationError, match="Reserved filename"):
+        with pytest.raises(ValidationError, match="reserved name"):
             validator.validate("CON")
     
     def test_empty_path_raises_error(self, tmp_path):
@@ -106,4 +106,86 @@ quality = "best"
         assert config.download.max_concurrent == 3
 
 
-# Add more tests as needed
+class TestSSRFPrevention:
+    """Tests for SSRF prevention via DNS resolution."""
+
+    def _mock_getaddrinfo(self, ip):
+        """Helper to create a mock getaddrinfo that returns a specific IP."""
+        return [(2, 1, 6, "", (ip, 0))]
+
+    def test_blocks_localhost(self):
+        """Localhost should be blocked."""
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            return_value=self._mock_getaddrinfo("127.0.0.1"),
+        ):
+            with pytest.raises(ValidationError, match="Private/local addresses"):
+                URLValidator.validate("http://localhost/path")
+
+    def test_blocks_private_ip_192(self):
+        """192.168.x.x should be blocked."""
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            return_value=self._mock_getaddrinfo("192.168.1.1"),
+        ):
+            with pytest.raises(ValidationError, match="Private/local addresses"):
+                URLValidator.validate("http://192.168.1.1/path")
+
+    def test_blocks_private_ip_10(self):
+        """10.x.x.x should be blocked."""
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            return_value=self._mock_getaddrinfo("10.0.0.1"),
+        ):
+            with pytest.raises(ValidationError, match="Private/local addresses"):
+                URLValidator.validate("http://10.0.0.1/path")
+
+    def test_blocks_userinfo(self):
+        """URLs with user@host should be blocked."""
+        with pytest.raises(ValidationError, match="credentials"):
+            URLValidator.validate("http://admin@127.0.0.1/")
+
+    def test_allows_public_urls(self):
+        """Public URLs should pass validation."""
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            return_value=self._mock_getaddrinfo("142.250.80.46"),
+        ):
+            result = URLValidator.validate("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+            assert result == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            return_value=self._mock_getaddrinfo("151.101.1.69"),
+        ):
+            result = URLValidator.validate("https://vimeo.com/123456")
+            assert result == "https://vimeo.com/123456"
+
+    def test_handles_unresolvable_hosts(self):
+        """Unresolvable hosts should pass (they'll fail at download time)."""
+        import socket
+
+        with patch(
+            "video_downloader.utils.validators.socket.getaddrinfo",
+            side_effect=socket.gaierror("Name or service not known"),
+        ):
+            result = URLValidator.validate(
+                "https://this-domain-does-not-exist-xyz123.com/video"
+            )
+            assert "this-domain-does-not-exist-xyz123.com" in result
+
+
+class TestPathValidatorReservedNames:
+    """Tests for reserved name validation across all path components."""
+
+    def test_reserved_name_in_subdirectory(self, tmp_path):
+        """Reserved names in subdirectories should be caught."""
+        validator = PathValidator(tmp_path)
+        with pytest.raises(ValidationError, match="reserved name"):
+            validator.validate("CON/video.mp4")
+
+    def test_reserved_name_with_extension(self, tmp_path):
+        """Reserved names with extensions should be caught (e.g. NUL.txt)."""
+        validator = PathValidator(tmp_path)
+        with pytest.raises(ValidationError, match="reserved name"):
+            validator.validate("NUL.txt")
