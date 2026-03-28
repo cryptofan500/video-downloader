@@ -28,7 +28,7 @@ def mock_config():
     """Create a mock AppConfig."""
     return AppConfig(
         title="Video Downloader",
-        version="2.0.0",
+        version="2.1.0",
         download=DownloadConfig(
             output_dir=Path("test_downloads"),
             max_concurrent=3,
