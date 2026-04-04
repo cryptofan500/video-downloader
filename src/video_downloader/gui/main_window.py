@@ -7,6 +7,7 @@ Provides GUI for video downloading with progress tracking and diagnostics.
 import logging
 import os
 import queue
+import subprocess
 import threading
 from pathlib import Path
 from tkinter import filedialog
@@ -109,7 +110,7 @@ class MainWindow(ctk.CTk):
         self.quality_var = ctk.StringVar(value="native")
         self.quality_dropdown = ctk.CTkOptionMenu(
             quality_frame,
-            values=["native", "best", "2160p", "1080p", "720p", "480p", "mp3", "wav", "flac"],
+            values=["native", "best", "2160p", "1080p", "720p", "480p", "mp3", "flac", "wav", "opus", "aac"],
             variable=self.quality_var,
         )
         self.quality_dropdown.grid(row=0, column=1, padx=10, pady=10)
@@ -277,7 +278,7 @@ class MainWindow(ctk.CTk):
 
         # Determine quality
         quality = self.quality_var.get()
-        audio_only = quality in ["mp3", "wav", "flac", "audio"]
+        audio_only = quality in ["mp3", "wav", "flac", "aac", "opus", "audio"]
 
         # Let yt-dlp handle filename sanitization - just pass the directory
         output_path = self.output_path
@@ -292,9 +293,19 @@ class MainWindow(ctk.CTk):
         self.download_manager.download_in_thread(url, output_path, quality, audio_only)
 
     def _open_output_folder(self) -> None:
-        """Open the output directory in Windows Explorer."""
+        """Open the downloaded file's location in Windows Explorer."""
         try:
-            os.startfile(str(self.output_path))
+            # Try to get the actual file path from the download manager
+            last_file = None
+            if self.download_manager:
+                with self.download_manager._lock:
+                    last_file = self.download_manager._last_completed_file
+
+            if last_file and last_file.is_file():
+                # Select the specific file in Explorer
+                subprocess.run(["explorer", "/select,", str(last_file)])
+            else:
+                os.startfile(str(self.output_path))
         except Exception as e:
             self.diagnostics.log(f"Could not open folder: {e}", "ERROR")
 
@@ -347,6 +358,9 @@ class MainWindow(ctk.CTk):
 
     def _process_queue(self) -> None:
         """Process messages from worker threads (called periodically)."""
+        if not self.download_manager:
+            self.after(100, self._process_queue)
+            return
         try:
             while True:
                 event_type, data = self.download_manager.message_queue.get_nowait()
@@ -398,13 +412,13 @@ def main() -> None:
 
         config = AppConfig(
             title="Video Downloader",
-            version="2.1.0",
+            version="2.2.0",
             download=DownloadConfig(
                 output_dir=Path("downloads"),
                 max_concurrent=3,
                 timeout=300,
                 retry_attempts=3,
-                quality="best",
+                quality="native",
             ),
         )
 

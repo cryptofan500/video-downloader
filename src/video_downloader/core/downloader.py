@@ -705,6 +705,13 @@ class VideoDownloader:
                     f"Recoverable error ({error_category}) on attempt "
                     f"{attempt + 1}: {error_msg[:100]}..."
                 )
+
+                # Try next fallback browser on auth-related errors
+                if error_category in ("forbidden", "bot_detection") and self._fallback_browsers:
+                    next_browser = self._fallback_browsers.pop(0)
+                    self._selected_browser = next_browser
+                    logger.info(f"Switching to {next_browser} cookies for next attempt")
+
                 continue
 
             except KeyboardInterrupt:

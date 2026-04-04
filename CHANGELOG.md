@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-04-04
+
+### Fixed
+- Open Folder button now highlights the actual downloaded file in Explorer
+- Queue processing guarded against missing download manager
+- Fallback config uses "native" quality consistently
+
+### Improved
+- User-Agent strings updated to April 2026 browser versions (Chrome 135, Firefox 138, Edge 135, Safari 18.4)
+- Cookie extraction now cycles through fallback browsers on auth failures
+- AAC and Opus audio formats added to GUI quality dropdown
+
 ## [2.1.0] - 2026-03-28
 
 ### Security
