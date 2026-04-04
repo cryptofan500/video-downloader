@@ -46,8 +46,7 @@ class DiagnosticsPane(ctk.CTkFrame):
         self.textbox.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
         # Configure color tags for log levels
-        # Access the underlying tk.Text widget inside CTkTextbox
-        inner_text = self.textbox._textbox
+        inner_text = self._inner_text
         inner_text.tag_config("SUCCESS", foreground="#00FF00")
         inner_text.tag_config("WARNING", foreground="#FFA500")
         inner_text.tag_config("ERROR", foreground="#FF4444")
@@ -78,6 +77,11 @@ class DiagnosticsPane(ctk.CTkFrame):
             button_frame, text="Export Logs", command=self._export_logs, width=100
         )
         self.export_btn.pack(side="left", padx=5)
+
+    @property
+    def _inner_text(self):
+        """Access underlying tk.Text widget with fallback for future CTk versions."""
+        return getattr(self.textbox, "_textbox", self.textbox)
 
     def _show_context_menu(self, event: tk.Event) -> None:
         """Display right-click context menu."""
@@ -165,7 +169,7 @@ class DiagnosticsPane(ctk.CTkFrame):
         self.textbox.configure(state="normal")
 
         # Insert with color tag
-        self.textbox._textbox.insert("end", log_entry, tag)
+        self._inner_text.insert("end", log_entry, tag)
 
         # Auto-scroll to bottom
         self.textbox.see("end")
