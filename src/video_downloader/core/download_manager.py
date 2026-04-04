@@ -128,7 +128,10 @@ class ThreadedDownloadManager:
             )
 
             if success:
-                self._send_update("complete", str(output_path))
+                completed_file = None
+                with self._lock:
+                    completed_file = self._last_completed_file
+                self._send_update("complete", str(completed_file or output_path))
             else:
                 self._send_update("error", "Download failed or was cancelled")
 
