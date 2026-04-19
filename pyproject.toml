@@ -6,7 +6,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
 authors = [
-    { name = "Pawel Zawadzki", email = "zawadzkipawel37@outlook.com" }
+    { name = "Pawel Zawadzki", email = "cryptofan500@users.noreply.github.com" }
 ]
 keywords = ["youtube", "video", "downloader", "yt-dlp", "transcription", "gui"]
 classifiers = [
