@@ -29,6 +29,7 @@ from video_downloader.utils.exceptions import (
     ValidationError,
 )
 from video_downloader.utils.ffmpeg_manager import FFmpegManager
+from video_downloader.utils.path_utils import get_config_path
 from video_downloader.utils.validators import URLValidator
 
 # Configure logging for CLI
@@ -73,14 +74,14 @@ def download(
 
     # Load configuration
     try:
-        config_path = Path("config.toml")
+        config_path = get_config_path()
         if config_path.exists():
             config = AppConfig.from_toml(config_path)
         else:
             # Use defaults
             config = AppConfig(
                 title="Video Downloader",
-                version="2.2.0",
+                version="2.1.1",
                 download=DownloadConfig(
                     output_dir=Path("downloads"),
                     max_concurrent=3,

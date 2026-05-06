@@ -189,11 +189,21 @@ class MainWindow(ctk.CTk):
         if notice_file.exists():
             return
 
-        self.diagnostics.log(
-            "Note: This app may use cookies from your installed browsers to "
-            "authenticate with video sites. No cookies are sent to third parties.",
-            "WARNING",
-        )
+        if getattr(self.config.download, "use_browser_cookies", False):
+            self.diagnostics.log(
+                "Note: Browser cookies are enabled in config.toml. The app "
+                "will read cookies from installed browsers when YouTube "
+                "challenges an anonymous request. No cookies are sent to "
+                "third parties.",
+                "WARNING",
+            )
+        else:
+            self.diagnostics.log(
+                "Downloads run anonymously. To use browser cookies for "
+                "age-gated or members-only videos, set "
+                "use_browser_cookies = true in config.toml.",
+                "INFO",
+            )
 
         try:
             notice_file.parent.mkdir(parents=True, exist_ok=True)
@@ -412,13 +422,14 @@ def main() -> None:
 
         config = AppConfig(
             title="Video Downloader",
-            version="2.2.0",
+            version="2.1.1",
             download=DownloadConfig(
                 output_dir=Path("downloads"),
                 max_concurrent=3,
                 timeout=300,
                 retry_attempts=3,
                 quality="native",
+                use_browser_cookies=False,
             ),
         )
 

@@ -35,6 +35,7 @@ class DownloadConfig:
     timeout: int
     retry_attempts: int
     quality: str
+    use_browser_cookies: bool = False
 
     def __post_init__(self):
         """Validate configuration after initialization."""
@@ -109,13 +110,14 @@ class AppConfig:
 
             return cls(
                 title=app_data.get("title", "Video Downloader"),
-                version=app_data.get("version", "2.1.0"),
+                version=app_data.get("version", "2.1.1"),
                 download=DownloadConfig(
                     output_dir=Path(download_data.get("output_dir", "downloads")),
                     max_concurrent=download_data.get("max_concurrent", 3),
                     timeout=download_data.get("timeout", 300),
                     retry_attempts=download_data.get("retry_attempts", 3),
                     quality=download_data.get("quality", "best"),
+                    use_browser_cookies=download_data.get("use_browser_cookies", False),
                 ),
             )
         except Exception as e:
@@ -136,12 +138,13 @@ class AppConfig:
 
 [app]
 title = "Video Downloader"
-version = "2.1.0"
+version = "2.1.1"
 
 [download]
 # Output directory for downloaded videos
-# Use "downloads" for user's Downloads folder (recommended)
-# Or specify an absolute path like "C:/Videos" or "~/Videos"
+# Use "downloads" for user's Downloads folder (recommended; resolved at runtime
+# to the current user's real Downloads via the Windows Shell API). You can also
+# specify an absolute path like "C:/Videos" or "~/Videos".
 output_dir = "downloads"
 
 # Maximum concurrent downloads
@@ -153,8 +156,15 @@ timeout = 300
 # Number of retry attempts on failure
 retry_attempts = 3
 
-# Default quality (best, 1080p, 720p, 480p, audio)
-quality = "best"
+# Default quality (native, best, 1080p, 720p, 480p, mp3, flac, wav, opus, aac)
+quality = "native"
+
+# Use cookies from installed browsers when a download fails with an auth
+# challenge (age-gate, members-only, bot-check). Default: false.
+# Enable only if downloads keep failing without it. May fail on portable
+# installs where DPAPI cannot decrypt the browser's cookie database
+# (yt-dlp issue #10927).
+use_browser_cookies = false
 """
 
         try:

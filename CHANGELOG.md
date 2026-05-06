@@ -5,17 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.2.0] - 2026-04-04
+## [2.1.1] - 2026-05-06
 
 ### Fixed
-- Open Folder button now highlights the actual downloaded file in Explorer
-- Queue processing guarded against missing download manager
-- Fallback config uses "native" quality consistently
+- Browser cookies are now opt-in (default off). Previously, every download
+  unconditionally invoked yt-dlp's `cookiesfrombrowser`, which crashed on
+  machines where DPAPI could not decrypt the browser's cookie database
+  (yt-dlp issue #10927: "Failed to decrypt with DPAPI"). Anonymous downloads
+  now work out-of-the-box; cookies are attached only on retry after an
+  auth/bot-check failure AND only when explicitly enabled in `config.toml`.
+- Added `cookie_decrypt_failed` error category that permanently disables
+  cookies for the rest of the retry sequence so a single DPAPI failure
+  doesn't loop.
+- CLI now resolves `config.toml` via `get_config_path()` for parity with
+  the GUI (frozen apps look next to the .exe; dev uses repo root) instead
+  of relying on the current working directory.
+- Open Folder button now highlights the actual downloaded file in Explorer.
+- Queue processing guarded against missing download manager.
+- Fallback config uses "native" quality consistently.
+
+### Added
+- New `use_browser_cookies` config flag (default: `false`). Set to `true`
+  in `config.toml` to enable browser cookie fallback for age-gated or
+  members-only videos. Manual `cookies.txt` is still respected unconditionally
+  (it doesn't trip DPAPI).
+- One-time diagnostics notice on app launch explaining whether browser
+  cookies are enabled and how to toggle the setting.
 
 ### Improved
-- User-Agent strings updated to April 2026 browser versions (Chrome 135, Firefox 138, Edge 135, Safari 18.4)
-- Cookie extraction now cycles through fallback browsers on auth failures
-- AAC and Opus audio formats added to GUI quality dropdown
+- User-Agent strings updated to April 2026 browser versions (Chrome 135,
+  Firefox 138, Edge 135, Safari 18.4).
+- Cookie extraction cycles through fallback browsers on auth failures.
+- AAC and Opus audio formats added to GUI quality dropdown.
+- Defensive exception handling around browser auto-detection so a malformed
+  profile path can never crash the download pipeline.
+
+### Portability
+- Confirmed via audit that Downloads-folder resolution uses
+  `SHGetKnownFolderPath` (not `Path.home()/Downloads`) so the path always
+  reflects the *current* user's real Downloads folder — including
+  OneDrive-relocated folders, non-English Windows, and Group-Policy redirects.
+- Version strings harmonized across `__init__.py`, `constants.py`,
+  `config.py`, `pyproject.toml`, `config.example.toml`, `cli.py`,
+  `gui/main_window.py`, and the test fixtures (previously a mix of
+  `1.1.0`, `2.1.0`, and `2.2.0`).
 
 ## [2.1.0] - 2026-03-28
 

@@ -108,6 +108,9 @@ class VideoDownloader:
         self._fallback_browsers: list[str] = []  # Store fallback browsers for retry
         self._selected_browser: str | None = None  # Track selected browser for User-Agent matching
         self.last_downloaded_file: Path | None = None
+        # Cookies are opt-in. Default: try anonymous; only attach browser
+        # cookies on a retry triggered by an auth/bot-check error.
+        self._cookies_enabled_for_attempt: bool = False
 
     def _is_browser_installed(self, browser: str) -> bool:
         """
@@ -237,50 +240,64 @@ class VideoDownloader:
 
     def _configure_browser_cookies(self, ydl_opts: dict[str, Any]) -> dict[str, Any]:
         """
-        Configure browser cookies with intelligent fallback.
+        Configure browser cookies for the current download attempt.
+
+        Cookies are opt-in to avoid DPAPI decryption failures on machines
+        where the running user's profile cannot decrypt the browser's cookie
+        database (yt-dlp issue #10927). Triggered on retry when the previous
+        attempt failed with an auth/bot-check error.
 
         Priority:
-        1. Available unlocked browsers (Firefox first - no locking issues)
-        2. Manual cookies.txt file
-        3. No cookies (anonymous - some videos may fail)
+        1. If a manual cookies.txt is present, prefer it (no DPAPI involved)
+        2. If browser cookies are enabled for this attempt and a browser is
+           available, attach `cookiesfrombrowser`
+        3. Otherwise, no cookies (anonymous)
 
         Args:
             ydl_opts: Current yt-dlp options
 
         Returns:
-            Updated options with browser cookie configuration
+            Updated options
         """
-        available_browsers = self._get_available_browsers()
+        # Always remove any stale entry from a prior attempt
+        ydl_opts.pop("cookiesfrombrowser", None)
+        ydl_opts.pop("cookiefile", None)
 
-        # Try available browsers in priority order
-        if available_browsers:
-            browser = available_browsers[0]
-            ydl_opts["cookiesfrombrowser"] = (browser, None, None, None)
-            logger.info(f"Using {browser} cookies for authentication")
-
-            # Store selected browser for User-Agent matching
-            self._selected_browser = browser
-            # Store fallback browsers for retry logic
-            self._fallback_browsers = available_browsers[1:]
-            return ydl_opts
-
-        # Fallback: Check for manual cookies.txt
+        # Manual cookies.txt always wins — it cannot trip DPAPI
         cookies_file = self._find_cookies_file()
         if cookies_file:
             ydl_opts["cookiefile"] = str(cookies_file)
             logger.info(f"Using manual cookies file: {cookies_file}")
-            if "cookiesfrombrowser" in ydl_opts:
-                del ydl_opts["cookiesfrombrowser"]
             return ydl_opts
 
-        # No cookies available
-        logger.warning(
-            "No browser cookies available. For best results, install Firefox and log into video sites. "
-            "Firefox cookies are most reliable (Chrome encryption may block cookie access). "
-            "Alternatively, export cookies to cookies.txt"
-        )
-        if "cookiesfrombrowser" in ydl_opts:
-            del ydl_opts["cookiesfrombrowser"]
+        # Browser cookies are gated on (a) the runtime opt-in flag and
+        # (b) the user's `use_browser_cookies` config setting.
+        if not self._cookies_enabled_for_attempt:
+            logger.debug("Browser cookies disabled for this attempt (anonymous)")
+            return ydl_opts
+
+        if not getattr(self.config.download, "use_browser_cookies", False):
+            logger.debug("Browser cookies opt-in not enabled in config")
+            return ydl_opts
+
+        try:
+            available_browsers = self._get_available_browsers()
+        except Exception as e:  # defensive: never crash on browser detection
+            logger.warning(f"Browser detection failed, continuing anonymously: {e}")
+            return ydl_opts
+
+        if available_browsers:
+            browser = available_browsers[0]
+            ydl_opts["cookiesfrombrowser"] = (browser, None, None, None)
+            self._selected_browser = browser
+            self._fallback_browsers = available_browsers[1:]
+            logger.info(
+                f"Retrying with {browser} cookies for authentication "
+                "(set use_browser_cookies=false in config.toml to disable)"
+            )
+            return ydl_opts
+
+        logger.info("No browser profiles found — continuing without cookies")
         return ydl_opts
 
     def _build_output_template(self, output_dir: Path, audio_format: str | None = None) -> str:
@@ -623,6 +640,10 @@ class VideoDownloader:
         if "drm" in error_lower or "protected" in error_lower:
             return False, "drm_protected"
 
+        # Cookie / DPAPI failures (yt-dlp issue #10927) — recover by dropping cookies
+        if "dpapi" in error_lower or "failed to decrypt" in error_lower:
+            return True, "cookie_decrypt_failed"
+
         # Recoverable errors - retry with different strategy
         if any(x in error_lower for x in ["403", "forbidden"]):
             return True, "forbidden"
@@ -665,6 +686,12 @@ class VideoDownloader:
         self._cancelled = False
         last_error: Exception | None = None
 
+        # Attempt 1 is always anonymous (no browser cookies). Subsequent
+        # retries may opt into cookies if the config allows it AND the
+        # previous failure suggests an auth/bot-check problem.
+        self._cookies_enabled_for_attempt = False
+        cookies_permanently_disabled = False
+
         for attempt in range(max_retries):
             if self._cancelled:
                 logger.info("Download cancelled by user")
@@ -706,11 +733,32 @@ class VideoDownloader:
                     f"{attempt + 1}: {error_msg[:100]}..."
                 )
 
-                # Try next fallback browser on auth-related errors
-                if error_category in ("forbidden", "bot_detection") and self._fallback_browsers:
-                    next_browser = self._fallback_browsers.pop(0)
-                    self._selected_browser = next_browser
-                    logger.info(f"Switching to {next_browser} cookies for next attempt")
+                # Cookie decryption failed (DPAPI / yt-dlp #10927) — never
+                # try cookies again on this run.
+                if error_category == "cookie_decrypt_failed":
+                    cookies_permanently_disabled = True
+                    self._cookies_enabled_for_attempt = False
+                    logger.warning(
+                        "Browser cookies unavailable on this machine "
+                        "(DPAPI decryption failed) — continuing without authentication"
+                    )
+                    continue
+
+                # On auth-related failure, opt into cookies for the next
+                # attempt — only if the user enabled them in config and
+                # we haven't already burned a cookie attempt.
+                if (
+                    error_category in ("forbidden", "bot_detection")
+                    and not cookies_permanently_disabled
+                    and getattr(self.config.download, "use_browser_cookies", False)
+                ):
+                    if self._fallback_browsers:
+                        next_browser = self._fallback_browsers.pop(0)
+                        self._selected_browser = next_browser
+                        logger.info(
+                            f"Switching to {next_browser} cookies for next attempt"
+                        )
+                    self._cookies_enabled_for_attempt = True
 
                 continue
 
