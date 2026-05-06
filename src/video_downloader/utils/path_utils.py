@@ -78,24 +78,6 @@ def get_config_path() -> Path:
         return get_application_path() / "config.toml"
 
 
-def get_default_output_dir() -> Path:
-    """
-    Get default output directory for downloads.
-
-    Returns:
-        Path to downloads directory (created if needed)
-    """
-    if getattr(sys, "frozen", False):
-        # Frozen: downloads folder next to .exe
-        output_dir = Path(sys.executable).parent / "downloads"
-    else:
-        # Development: downloads in project root
-        output_dir = get_application_path() / "downloads"
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    return output_dir
-
-
 def setup_environment_paths() -> None:
     """
     Configure PATH and environment for external tools.
